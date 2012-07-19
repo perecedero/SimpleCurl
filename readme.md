@@ -9,14 +9,13 @@ Simplecurl is a easy way to do server to server comunication using cURL.
 
 ## Features
 
-* POST/GET/PUT/DELETE requests over HTTP
-* HTTP Authentication
+* POST/GET requests over HTTP in a simplified way
 * Follows redirects
-* Returns error string
-* Provides debug information
-* Proxy support
+* Response report
 * Cookies
-
+* Custom headers
+* Easy way to upload and download files
+* Autoparse response
 
 ## Usage
 
