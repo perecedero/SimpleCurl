@@ -23,9 +23,9 @@ Make a GET Request
 
 	<?php
 		require_once 'SimpleCurl.php';
-	
+
 		$sc = new SimpleCurl();
-	
+
 		$result = $sc->call(array(
 			'url' => 'http://search.twitter.com/search.json?q=twitbin'
 		));
@@ -35,9 +35,9 @@ Make a POST Request
 
 	<?php
 		require_once 'SimpleCurl.php';
-	
+
 		$sc = new SimpleCurl();
-	
+
 		$res = $sc->call(array(
 			'url' => 'http://wordpress.org/search/do-search.php',
 			'post' => array('search'=> 'Pressbackup')
@@ -75,12 +75,12 @@ user-agent:
  * default 'Perecedero/Misc/SimpleCurl/PHP'
 
 cookie:
- list of cookies to be send 
+ list of cookies to be send
  * type mixed (array|string)
  * default null
 
 post:
- List of arguments to be send via POST 
+ List of arguments to be send via POST
  * type array
  * default null
 
@@ -93,7 +93,7 @@ upload.file.PUT
  Path to the file to be send via PUT
  * type string
  * default null
- 
+
 save.output.in
  Path to the file to be used to store the output
  Also used to download files
@@ -114,14 +114,19 @@ return.header:
  Return response headers on the output
  * type boolean
  * default false
- 
+
 return.body:
- return html message body  on response
+ return call response body instead of boolean as function return
  * type boolean
  * default true
 
-parse.response:
- Parse response output
- * values 'auto', 'xml', 'json', 'raw', false
+return.body.onerror:
+ return call response body instead of boolean false if response code is 4xx/5xx
+ * type boolean
+ * default false
+
+parse.body:
+ Parse response. valid with return.body=true
+ * values 'auto', 'xml', 'json', 'json.associative', 'raw', false
  * type mixed
  * default 'auto'

@@ -1,10 +1,10 @@
 <?php
 
 /**
- * SimpleCurl 
- * 
+ * SimpleCurl
+ *
  * ----
- * 
+ *
  * Licensed under The GPL v3 License
  * Redistributions of files must retain the above copyright notice.
  *
@@ -19,7 +19,7 @@ class SimpleCurl
 {
 
 	/**
-	 * Strores the status of las call
+	 * Strores last call status
 	 *
 	 * @var array
 	 * @access public
@@ -41,6 +41,14 @@ class SimpleCurl
 	 * @access Private
 	 */
 	private $tmp_read_file = null;
+
+	/**
+	 * size of the file open on $tmp_read_file
+	 *
+	 * @var file pointer
+	 * @access Private
+	 */
+	private $tmp_read_file_size = null;
 
 	/**
 	 * Store call output
@@ -71,6 +79,7 @@ class SimpleCurl
 
 		$this->tmp_write_file = null;
 		$this->tmp_read_file = null;
+		$this->tmp_read_file_size = null;
 	}
 
 	/**
@@ -84,7 +93,7 @@ class SimpleCurl
 		date_default_timezone_set('UTC');
 
 		/*
-		 * Init 
+		 * Init
 		*/
 
 		$this->cleanLastCallStatus();
@@ -93,9 +102,11 @@ class SimpleCurl
 			'header' =>array(),
 			'user-agent' => 'Perecedero/Misc/SimpleCurl/PHP',
 			'verify.ssl' => false,
+			'follow.location' => false,
 			'return.header' => false,
-			'return.body' => true,
-			'parse.response' => 'auto' //auto, xml, json, raw, false
+			'return.header.sent' => false,
+			'return.body' => 'auto', //auto, xml, json, json.associative, raw, false
+			'return.body.onerror' => false
 		);
 
 		$args = array_merge($default_args, $args);
@@ -117,8 +128,8 @@ class SimpleCurl
 
 			if(is_array($args['cookie'])){
 				$cookie = array();
-				foreach($args['cookie'] as $key => $value) { $cookie[] = $key.'='.$value;}
-				$cookie = join (';', $cookie);
+				foreach($args['cookie'] as $key => $value) { $cookie[] = urlencode($key).'='.urlencode($value);}
+				$cookie = join ('; ', $cookie);
 			}
 
 			curl_setopt($curl_handle, CURLOPT_COOKIE, $cookie);
@@ -126,21 +137,41 @@ class SimpleCurl
 
 		curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curl_handle, CURLOPT_HEADER, $args['return.header'] );
+		curl_setopt($curl_handle, CURLINFO_HEADER_OUT, $args['return.header.sent'] );
 		curl_setopt($curl_handle, CURLOPT_NOBODY, !$args['return.body'] );
 
 		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, $args['verify.ssl']);
 		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, $args['verify.ssl']);
 
-		curl_setopt($curl_handle, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($curl_handle, CURLOPT_FOLLOWLOCATION, $args['follow.location']);
+
+		if (isset($args['user'])) {
+			curl_setopt($curl_handle, CURLOPT_USERPWD, $args['user']);
+		}
 
 		curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 5);
 		if (isset($args['timeout'])) {
 			curl_setopt($curl_handle, CURLOPT_TIMEOUT, $args['timeout']);
 		}
 
-		if (isset($args['upload.file.POST'])) {
+		if (isset($args['upload.file.POST']) && $args['upload.file.POST']) {
 			foreach ($args['upload.file.POST'] as $file){
 				$args['post']['upload.file'][] = '@' . $file;
+			}
+		}
+
+		if (isset($args['upload.file.PUT']) && $args['upload.file.PUT']) {
+
+			curl_setopt($curl_handle, CURLOPT_POST, false);
+			curl_setopt($curl_handle, CURLOPT_PUT, true);
+
+			$this->tmp_read_file = @fopen($args['upload.file.PUT'], 'rb');
+			$this->tmp_read_file_size = filesize($args['upload.file.PUT']);
+
+			curl_setopt($curl_handle, CURLOPT_INFILE, $this->tmp_read_file );
+			curl_setopt($curl_handle, CURLOPT_BUFFERSIZE, 128);
+			if ($this->tmp_read_file_size >= 0) {
+				curl_setopt( $curl_handle, CURLOPT_INFILESIZE, $this->tmp_read_file_size );
 			}
 		}
 
@@ -149,22 +180,16 @@ class SimpleCurl
 			curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $args['post']);
 		}
 
-		if (isset($args['upload.file.PUT'])) {
-
-			curl_setopt($curl_handle, CURLOPT_POST, false);
-			curl_setopt($curl_handle, CURLOPT_PUT, true);
-
-			$this->tmp_read_file = @fopen($args['upload.file.PUT'], 'rb');
-			$size = filesize($args['upload.file.PUT']);
-
-			curl_setopt($curl_handle, CURLOPT_INFILE, $this->tmp_read_file );
-			curl_setopt($curl_handle, CURLOPT_BUFFERSIZE, 128);
-			if ($size >= 0) {
-				curl_setopt( $curl_handle, CURLOPT_INFILESIZE, $size );
-			}
+		if (isset($args['method']) && in_array( strtoupper($args['method']), array('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE', 'CONNECT'))) {
+			curl_setopt($curl_handle, CURLOPT_CUSTOMREQUEST, strtoupper($args['method']));
 		}
 
-		if (isset($args['save.output.in'])) {
+		if(isset($args['proxy']) && $args['proxy']){
+			//proxy = host:port
+			curl_setopt ($curl_handle, CURLOPT_PROXY, $args['proxy']);
+		}
+
+		if (isset($args['save.output.in']) && $args['save.output.in']) {
 			$this->tmp_write_file =  fopen($args['save.output.in'], 'wb');
 		}
 
@@ -179,7 +204,7 @@ class SimpleCurl
 		if (!curl_exec($curl_handle)){
 
 			//set error response status
-			$this->response = array ( 
+			$this->response = array (
 				'code' => curl_errno($curl_handle),
 				'message' => curl_error($curl_handle)
 			);
@@ -201,12 +226,15 @@ class SimpleCurl
 		}
 
 		//set response status
-		$this->response = array ( 
+		$this->response = array (
 			'code' => curl_getinfo($curl_handle, CURLINFO_HTTP_CODE),
 			'body' => $this->buffer,
 			'latency' => curl_getinfo($curl_handle, CURLINFO_TOTAL_TIME),
 			'size' => strlen($this->buffer)
 		);
+		if ($args['return.header.sent']) {
+			$this->response['header.sent'] = curl_getinfo($curl_handle, CURLINFO_HEADER_OUT);
+		}
 
 		//close resources
 		curl_close($curl_handle);
@@ -220,24 +248,20 @@ class SimpleCurl
 		}
 
 		//check errors from server
-		if (in_array($this->response['code'], array(401, 404, 500, 505))) {
-
-			if ($this->response['code'] == 401){ $this->response['message'] = "Wrong Credentials";}
-			if ($this->response['code'] == 404){ $this->response['message'] = "Object Not found";}
-			if ($this->response['code'] == 500){ $this->response['message'] = "Server Error: 500";}
-			if ($this->response['code'] == 505){ $this->response['message'] = "Server Error: 505";}
+		if ($this->response['code'] >= 400) {
 
 			//clean resources
 			if(isset($args['save.output.in'])) {
 				@unlink($args['save.output.in']);
 			}
 
-			//exit
-			return false;
+			if(!$args['return.body.onerror']){
+				return false;
+			}
 		}
 
-		if ($this->tmp_write_file == null && $args['return.body'] && $args['parse.response'] ){
-			return $this->parseResponse($args['parse.response']);
+		if ($this->tmp_write_file == null && $args['return.body'] ){
+			return $this->parseResponse($args['return.body']);
 		} else {
 			return true;
 		}
@@ -287,15 +311,20 @@ class SimpleCurl
 	 *
 	 * @access Private
 	 */
-	private function parseResponse ($type)
+	public function parseResponse ($type = null)
 	{
+
 		if (in_array($type, array('auto', 'xml')) && $xml = @simplexml_load_string($this->buffer) ) {
 
 			$response = array();
-			$this->parse_xml_node(&$response, $xml, $first_time =true);
+			$this->parse_xml_node($response, $xml, $first_time =true);
 			return $response;
 
-		} elseif (in_array($type, array('auto', 'json')) && $json =  json_decode($this->buffer) ) {
+		} elseif (in_array($type, array('auto', 'json')) && $json =  @json_decode($this->buffer, false) ) {
+
+			return $json;
+
+		} elseif (in_array($type, array('auto', 'json.associative')) && $json =  @json_decode($this->buffer, true) ) {
 
 			return $json;
 
@@ -310,22 +339,19 @@ class SimpleCurl
 	 *
 	 * @access Private
 	 */
-	private function parse_xml_node ($array, $node, $first_time=false)
+	private function parse_xml_node (&$array, $node, $first_time=false)
 	{
 		if(!$first_time) { $i=0; }
-
 		foreach($node->children() as $name => $xmlchild) {
-
 			if(count($xmlchild) == 0) {
 				$array[$name]= (string)$node->$name;
 				continue;
-			} 
-
+			}
 			if (isset($i)) {
-					$this->parse_xml_node (&$array[$i][$name], $xmlchild);
+					$this->parse_xml_node ($array[$i][$name], $xmlchild);
 					$i++;
 			} else {
-				$this->parse_xml_node (&$array[$name], $xmlchild);
+				$this->parse_xml_node ($array[$name], $xmlchild);
 			}
 		}
 	}
