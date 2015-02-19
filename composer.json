@@ -1,0 +1,21 @@
+{
+    "name": "Perecedero/SimpleCurl",
+    "type": "library",
+    "description": "SimpleCurl is the easiest  way to do server to server communication using cURL",
+    "keywords": ["curl"],
+    "homepage": "http://github.com/perecedero/SimpleCurl",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Perecedero",
+            "email": "perecedero@gmail.com",
+            "homepage": "https://github.com/perecedero",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    }
+}

@@ -1,6 +1,6 @@
 ## What is SimpleCurl
 
-SimpleCurl is a easiest  way to do server to server communication using cURL.
+SimpleCurl is the easiest  way to do server to server communication using cURL.
 
 
 ### Requirements
