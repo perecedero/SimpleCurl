@@ -1,5 +1,5 @@
 {
-    "name": "Perecedero/SimpleCurl",
+    "name": "perecedero/simple-curl",
     "type": "library",
     "description": "SimpleCurl is the easiest  way to do server to server communication using cURL",
     "keywords": ["curl"],
