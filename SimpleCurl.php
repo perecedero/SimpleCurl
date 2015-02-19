@@ -5,15 +5,16 @@
  *
  * ----
  *
- * Licensed under The GPL v3 License
+ * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
  * @package		Perecedero
  * @subpackage	misc
- * @license		GPL v3 License
+ * @license		MIT License
  * @author		Ivan Lansky (@perecedero)
  */
 
+namespace \Perecedero\Misc\SimpleCurl
 
 class SimpleCurl
 {
@@ -92,10 +93,6 @@ class SimpleCurl
 	{
 		date_default_timezone_set('UTC');
 
-		/*
-		 * Init
-		*/
-
 		$this->cleanLastCallStatus();
 
 		$default_args = array(
@@ -145,7 +142,7 @@ class SimpleCurl
 
 		curl_setopt($curl_handle, CURLOPT_FOLLOWLOCATION, $args['follow.location']);
 
-		if (isset($args['user'])) {
+		if (isset($args['user.pwd'])) {
 			curl_setopt($curl_handle, CURLOPT_USERPWD, $args['user']);
 		}
 
@@ -222,7 +219,6 @@ class SimpleCurl
 
 			//exit
 			return false;
-
 		}
 
 		//set response status
@@ -232,6 +228,7 @@ class SimpleCurl
 			'latency' => curl_getinfo($curl_handle, CURLINFO_TOTAL_TIME),
 			'size' => strlen($this->buffer)
 		);
+
 		if ($args['return.header.sent']) {
 			$this->response['header.sent'] = curl_getinfo($curl_handle, CURLINFO_HEADER_OUT);
 		}
@@ -324,7 +321,7 @@ class SimpleCurl
 
 			return $json;
 
-		} elseif (in_array($type, array('auto', 'json.associative')) && $json =  @json_decode($this->buffer, true) ) {
+		} elseif (in_array($type, array('auto', 'json.assoc')) && $json =  @json_decode($this->buffer, true) ) {
 
 			return $json;
 
@@ -356,4 +353,4 @@ class SimpleCurl
 		}
 	}
 }
-?>
+
