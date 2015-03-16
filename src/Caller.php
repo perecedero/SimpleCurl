@@ -125,8 +125,8 @@ class Caller
 		curl_setopt($ch, CURLINFO_HEADER_OUT, true);
 		curl_setopt($ch, CURLOPT_NOBODY, !$this->settings['return.body'] );
 
-		if (isset($this->settings['cookie'])) {
-			curl_setopt($ch, CURLOPT_COOKIE, $this->builCookie());
+		if (isset($this->settings['proxy']) && $this->settings['proxy']) {
+			curl_setopt ($ch, CURLOPT_PROXY, $this->settings['proxy']);
 		}
 
 		if (isset($this->settings['verify.ssl'])) {
@@ -147,24 +147,39 @@ class Caller
 			curl_setopt($ch, CURLOPT_TIMEOUT, $this->settings['timeout']);
 		}
 
-		if (isset($this->settings['upload.file.POST']) && $this->settings['upload.file.POST']) {
-			foreach ($this->settings['upload.file.POST'] as $file) {
-				$this->settings['post']['upload.file'][] = '@' . $file;
-			}
+		if (isset($this->settings['cookie'])) {
+			curl_setopt($ch, CURLOPT_COOKIE, $this->builCookie());
 		}
 
-		if (isset($this->settings['upload.file.PUT']) && $this->settings['upload.file.PUT']) {
+		if (isset($this->settings['method']) && in_array(
+			strtoupper($this->settings['method']),
+			array('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE', 'CONNECT')
+		)) {
+			$this->settings['method'] = strtoupper($this->settings['method']);
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->settings['method']);
+		}
 
-			curl_setopt($ch, CURLOPT_POST, false);
-			curl_setopt($ch, CURLOPT_PUT, true);
+		if (isset($this->settings['upload.file'])) {
 
-			$this->tmp_read_file = @fopen($this->settings['upload.file.PUT'], 'rb');
-			$this->tmp_read_file_size = filesize($this->settings['upload.file.PUT']);
+			$files = (array)$this->settings['upload.file'];
 
-			curl_setopt($ch, CURLOPT_INFILE, $this->tmp_read_file);
-			curl_setopt($ch, CURLOPT_BUFFERSIZE, 128);
-			if ($this->tmp_read_file_size >= 0) {
-				curl_setopt( $ch, CURLOPT_INFILESIZE, $this->tmp_read_file_size);
+			if (isset($this->settings['method']) && $this->settings['method'] ==  'PUT') {
+				curl_setopt($ch, CURLOPT_POST, false);
+				curl_setopt($ch, CURLOPT_PUT, true);
+
+				$this->tmp_read_file = fopen($files[0], 'rb');
+				$this->tmp_read_file_size = filesize($files[0]);
+
+				curl_setopt($ch, CURLOPT_INFILE, $this->tmp_read_file);
+				curl_setopt($ch, CURLOPT_BUFFERSIZE, 128);
+				if ($this->tmp_read_file_size >= 0) {
+					curl_setopt( $ch, CURLOPT_INFILESIZE, $this->tmp_read_file_size);
+				}
+
+			} else {
+				foreach ($files as $file) {
+					$this->settings['post'][basename($file)] = '@' . $file;
+				}
 			}
 		}
 
@@ -173,19 +188,8 @@ class Caller
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $this->settings['post']);
 		}
 
-		if (isset($this->settings['method']) && in_array(
-			strtoupper($this->settings['method']),
-			array('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'TRACE', 'CONNECT')
-		)) {
-			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($this->settings['method']));
-		}
-
-		if (isset($this->settings['proxy']) && $this->settings['proxy']) {
-			curl_setopt ($ch, CURLOPT_PROXY, $this->settings['proxy']);
-		}
-
-		if (isset($this->settings['save.output.in']) && $this->settings['save.output.in']) {
-			$this->tmp_write_file =  fopen($this->settings['save.output.in'], 'wb');
+		if (isset($this->settings['save.on']) && $this->settings['save.on']) {
+			$this->tmp_write_file =  fopen($this->settings['save.on'], 'wb');
 		}
 
 		curl_setopt($ch, CURLOPT_READFUNCTION, array($this, '__responseReadCallback'));
@@ -201,7 +205,7 @@ class Caller
 			//set error response status
 			$response = new \Perecedero\SimpleCurl\Response($this->settings, array(
 				'code' => curl_errno($ch),
-				'message' => curl_error($ch)
+				'message' => curl_error($ch),
 			));
 
 			//close resources
@@ -209,7 +213,7 @@ class Caller
 
 			if ($this->tmp_write_file != null) {
 				@fclose($this->tmp_write_file);
-				@unlink($this->settings['save.output.in']);
+				@unlink($this->settings['save.on']);
 			}
 
 			if ($this->tmp_read_file != null) {
@@ -243,15 +247,6 @@ class Caller
 
 		$this->buffer = $this->headersReceived = '';
 
-		//check errors from server
-		if ($response->code >= 400) {
-
-			//clean resources
-			if (isset($this->settings['save.output.in'])) {
-				@unlink($this->settings['save.output.in']);
-			}
-		}
-
 		return $response;
 	}
 
@@ -277,7 +272,7 @@ class Caller
 	private function __responseWriteCallback(&$curl, &$data)
 	{
 		if ($this->tmp_write_file != null) {
-			return fwrite($this->tmp_write_file, $data);
+			fwrite($this->tmp_write_file, $data);
 		}
 
 		$this->buffer .= $data;

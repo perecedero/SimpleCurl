@@ -153,17 +153,12 @@ __post__:
  * type array
  * default null
 
-__upload.file.POST__
+__upload.file__
  Path to the file to be send via POST
  * type string
  * default null
 
-__upload.file.PUT__
- Path to the file to be send via PUT
- * type string
- * default null
-
-__save.output.in__
+__save.on__
  Path to the file to be used to store the output
  Also used to download files
  * type string

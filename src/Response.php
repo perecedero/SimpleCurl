@@ -25,12 +25,12 @@ class Response
 	public function __construct($settings, $data)
 	{
 		$this->settings = $settings;
-		$this->data = $data;
+		$this->data = array_merge(array('body'=>''), $data);
 
 		if (
-			$data['body'] && (
-				($data['code'] < 400 && $settings['parse.body'] ) ||
-				($data['code'] >= 400 && $settings['parse.body.onerror'])
+			$this->data['body'] && (
+				($this->data['code'] < 400 && $this->settings['parse.body'] ) ||
+				($this->data['code'] >= 400 && $this->settings['parse.body.onerror'])
 			)
 		) {
 			$this->parse();
@@ -78,7 +78,7 @@ class Response
 		} elseif (in_array($type, array('auto', 'xml')) && $xml = @simplexml_load_string($this->data['body'])) {
 			$parsed = $xml;
 		} else { //raw
-			$parsed = $this->data['body'];
+			$parsed = @$this->data['body'];
 		}
 
 		$this->set('parsed.body', $parsed);
