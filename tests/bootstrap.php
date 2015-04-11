@@ -2,39 +2,39 @@
 
 if(strtoupper(substr(PHP_OS, 0, 3)) != 'WIN'){
 
-    // Command that starts the built-in web server
-    $command = sprintf(
-        'php -S %s:%d -t %s >  %s/log.txt 2>&1 & echo $!',
-        WEB_SERVER_HOST,
-        WEB_SERVER_PORT,
-        WEB_SERVER_DOCROOT,
-        WEB_SERVER_DOCROOT
-    );
+	// Command that starts the built-in web server
+	$command = sprintf(
+		'php -S %s:%d -t %s >  %s/log.txt 2>&1 & echo $!',
+		WEB_SERVER_HOST,
+		WEB_SERVER_PORT,
+		WEB_SERVER_DOCROOT,
+		WEB_SERVER_DOCROOT
+	);
 
 
-    // Execute the command and store the process ID
-    $output = array();
-    exec($command, $output);
-    $pid = (int) $output[0];
+	// Execute the command and store the process ID
+	$output = array();
+	exec($command, $output);
+	$pid = (int) $output[0];
 
-    echo sprintf(
-        '%s - Web server started on %s:%d with PID %d',
-        date('r'),
-        WEB_SERVER_HOST,
-        WEB_SERVER_PORT,
-        $pid
-    ) . PHP_EOL;
+	echo sprintf(
+		'%s - Web server started on %s:%d with PID %d',
+		date('r'),
+		WEB_SERVER_HOST,
+		WEB_SERVER_PORT,
+		$pid
+	) . PHP_EOL;
 
-    // Kill the web server when the process ends
-    register_shutdown_function(function() use ($pid) {
-        echo sprintf('%s - Killing process with ID %d', date('r'), $pid) . PHP_EOL;
-        exec('kill ' . $pid);
-    });
+	// Kill the web server when the process ends
+	register_shutdown_function(function() use ($pid) {
+		echo sprintf('%s - Killing process with ID %d', date('r'), $pid) . PHP_EOL;
+		exec('kill ' . $pid);
+	});
 
 
 
-    // More bootstrap code
+	// More bootstrap code
 
-    sleep(1);
+	sleep(1);
 }
 require_once '../src/autoload.php';

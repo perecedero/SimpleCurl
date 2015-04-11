@@ -35,6 +35,14 @@ class Caller
 	);
 
 	/**
+	 *  components container
+	 *
+	 * @var array
+	 * @access public
+	 */
+	public $components = array();
+
+	/**
 	 * File pontiter to write call output
 	 *
 	 * @var file pointer
@@ -110,16 +118,25 @@ class Caller
 			$this->settings = array_merge($this->settings, $settings);
 		}
 
+		// invoco run components
+		$componentToRun= (isset($settings['use']))? $settings['use'] : array_keys($this->components);
+		foreach ($componentToRun as $comp){
+		   // $this->settings= $this->components[$comp]->run($this->settings);
+		   $this->settings= $this->$comp->run($this->settings);
+		}
+
 		/*
 		 * Start set cURL Options
 		*/
+
+
 
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_FRESH_CONNECT, true );
 
 		curl_setopt($ch, CURLOPT_URL, $this->builUrl());
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $this->settings['header']);
-		curl_setopt($ch, CURLOPT_USERAGENT, 'Perecedero/SimpleCurl 1.0');
+		curl_setopt($ch, CURLOPT_USERAGENT,'Perecedero/SimpleCurl 1.0');
 
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLINFO_HEADER_OUT, true);
@@ -313,4 +330,25 @@ class Caller
 			$cookie = $this->settings['cookie'];
 		}
 	}
+
+	public function loadComponent( $name , $options=array() )
+	{
+		require_once 'Components/'.$name.'/autoload.php';
+		if(!isset($this->components[$name])){
+			$key= (isset($options['name']))? $options['name'] : $name;
+			$this->components[$key]= new $name($options);
+		}
+	}
+
+	public function __get($name)
+	{
+		if(isset($this->components[$name])){
+			return $this->components[$name];
+		}else{
+			return null;
+		}
+
+
+	}
+
 }
