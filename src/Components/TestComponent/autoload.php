@@ -1,2 +1,0 @@
-<?php 
-require 'testComponent.php';
