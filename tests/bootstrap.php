@@ -37,4 +37,6 @@ if(strtoupper(substr(PHP_OS, 0, 3)) != 'WIN'){
 
 	sleep(1);
 }
+
 require_once '../src/autoload.php';
+require_once './units/Resources/tokens.php';
