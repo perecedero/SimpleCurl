@@ -118,10 +118,23 @@ class Caller
 			$this->settings = array_merge($this->settings, $settings);
 		}
 
+		//build url
+		if (!isset($settings['url'])) {
+			$this->settings['url'] = $this->builUrl();
+		}
+
+		//obtain method
+		if (!isset($settings['method'])) {
+			if (isset($settings['post']) || isset($settings['upload.file'])) {
+				$this->settings['method'] = 'POST';
+			} else {
+				$this->settings['method'] = 'GET';
+			}
+		}
+
 		// invoco run components
 		$componentToRun= (isset($settings['use']))? $settings['use'] : array_keys($this->components);
 		foreach ($componentToRun as $comp){
-		   // $this->settings= $this->components[$comp]->run($this->settings);
 		   $this->settings= $this->$comp->run($this->settings);
 		}
 
@@ -129,12 +142,10 @@ class Caller
 		 * Start set cURL Options
 		*/
 
-
-
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_FRESH_CONNECT, true );
 
-		curl_setopt($ch, CURLOPT_URL, $this->builUrl());
+		curl_setopt($ch, CURLOPT_URL, $this->settings['url']);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $this->settings['header']);
 		curl_setopt($ch, CURLOPT_USERAGENT,'Perecedero/SimpleCurl 1.0');
 
@@ -336,7 +347,11 @@ class Caller
 		require_once 'Components/'.$name.'/autoload.php';
 		if(!isset($this->components[$name])){
 			$key= (isset($options['name']))? $options['name'] : $name;
-			$this->components[$key]= new $name($options);
+			if(isset($options[0])) {
+				$this->components[$key]= new $name($options[0]);
+			} else {
+				$this->components[$key]= new $name();
+			}
 		}
 	}
 
@@ -347,8 +362,5 @@ class Caller
 		}else{
 			return null;
 		}
-
-
 	}
-
 }
