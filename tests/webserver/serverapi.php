@@ -24,6 +24,22 @@ class TestApi {
 		}
 	}
 
+	public function getFile()
+	{
+		if ($this->method != 'GET') {
+			$this->sendResponse('405 Method Not Allowed');
+		} else {
+			$file = 'Resources/toBeDownloaded.file';
+			$content = file_get_contents($file);
+			if ($content) {
+				$this->sendResponse('200 Ok', $content, 'text/plain');
+			} else {
+				$this->sendResponse('500 Internal Error');
+			}
+		}
+		exit;
+	}
+
 	public function newFile()
 	{
 		if ($this->method != 'PUT'){
@@ -57,7 +73,7 @@ class TestApi {
 			if ($content) {
 				$this->sendResponse('200 Ok', ['read' => $content]);
 			} else {
-					$this->sendResponse('400 Bad request');
+				$this->sendResponse('400 Bad request');
 			}
 		}
 	}
@@ -80,23 +96,6 @@ class TestApi {
 		exit;
 	}
 
-	public function getFile()
-	{
-		if ($this->method != 'GET'){
-			$this->sendResponse('405 Method Not Allowed');
-		} else {
-
-			$content = file_get_contents('ftodownload.file');
-			if ($content) {
-				//faltan parametros
-				$this->sendResponse('200 Ok', $content, 'text/plain');
-			} else {
-				//no tienen sentido sacar
-				$this->sendResponse('400 Bad request');
-			}
-		}
-		 exit;
-	}
 }
 
 $api = new TestApi();

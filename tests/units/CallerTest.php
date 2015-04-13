@@ -3,165 +3,120 @@
 class CallerTest extends PHPUnit_Framework_TestCase
 {
 
-	//testear que se sobrescriben los settings instanciar
-
-	//testear que se sobrescriben los datos al hacer el call
-
-	//TDD!!
-
 	public function testUploadFileWithPutMethod()
 	{
+		$file = __DIR__ . '/Resources/toBeUploaded.file';
+
 		$c = new \Perecedero\SimpleCurl\Caller(array('url.domain'=>'127.0.25.1:8000'));
 
 		$res = $c->call(array(
 			'url.path' => '/serverapi.php/file/new',
-			'upload.file' =>  __DIR__ . '/test.file',
+			'upload.file' =>  $file,
 			'method' => 'PUT'
 		));
 
-		$expectedResult =  json_encode(array('read' => file_get_contents(__DIR__ . '/test.file')));
+		$expectedResult =  json_encode(array('read' => file_get_contents($file)));
 
-		$this->assertEquals(200, $res->code, 'Response HTTP status code');
-		$this->assertJsonStringEqualsJsonString($expectedResult, $res->body, 'Response body');
-	}
-
-	public function testUploadFileWithPOSTMethod()
-	{
-		$c = new \Perecedero\SimpleCurl\Caller(array('url.domain'=>'127.0.25.1:8000'));
-
-		$res = $c->call(array(
-			'url.path' => '/serverapi.php/file/update',
-			'upload.file' =>  __DIR__ . '/test.file',
-			'method' => 'POST'
-		));
-
-		$expectedResult =  json_encode(array('read' => file_get_contents(__DIR__ . '/test.file')));
-
-		$this->assertEquals(200, $res->code, 'Response HTTP status code');
-		$this->assertJsonStringEqualsJsonString($expectedResult, $res->body, 'Response body');
+		$this->assertJsonStringEqualsJsonString($expectedResult, $res->body, 'The server did no receive our file: ' . $res->code );
 	}
 
 	public function testUploadFileWithImplicitPOSTMethod()
 	{
+		$file = __DIR__ . '/Resources/toBeUploaded.file';
+
 		$c = new \Perecedero\SimpleCurl\Caller(array('url.domain'=>'127.0.25.1:8000'));
 
 		$res = $c->call(array(
 			'url.path' => '/serverapi.php/file/update',
-			'upload.file' =>  __DIR__ . '/test.file',
+			'upload.file' =>  $file,
 		));
 
-		$expectedResult =  json_encode(array('read' => file_get_contents(__DIR__ . '/test.file')));
+		$expectedResult =  json_encode(array('read' => file_get_contents($file)));
 
-		$this->assertEquals(200, $res->code, 'Response HTTP status code');
-		$this->assertJsonStringEqualsJsonString($expectedResult, $res->body, 'Response body');
+		$this->assertJsonStringEqualsJsonString($expectedResult, $res->body, 'The server did no receive our file: ' . $res->code);
 	}
-
 
 	public function testDownloadfileWithSaveOn()
 	{
+		$file = __DIR__ . '/Resources/downloaded.file';
+
 		$c = new \Perecedero\SimpleCurl\Caller(array('url.domain'=>'127.0.25.1:8000'));
 
 		$res = $c->call(array(
 			'url.path' => '/serverapi.php/file/1234',
-			'save.on' =>  __DIR__ . '/downloadTest.file',
+			'save.on' =>  $file,
 		));
-		$this->assertEquals(200, $res->code, 'Response HTTP status code');
-		$this->assertTrue(file_exists( __DIR__ . '/downloadTest.file'));
-		$obteinedResult =file_get_contents(__DIR__ . '/downloadTest.file');
-		$expectedResult= "test file to download. viki mussa";
-		$this->assertEquals($expectedResult,$obteinedResult);
 
-		//$this->assertJsonStringEqualsJsonString( json_encode(array("Mascott" => "Tux")), '{"Mascott":"Tux"}');
-		//anda por que son iguales
+		$obteinedResult = @file_get_contents($file);
+		$expectedResult = 'test file to download. viki mussa';
+
+		$this->assertEquals($expectedResult, $obteinedResult, 'Can not download the file: ' . $res->code );
 	}
 
-	public function testIsRightInstance()
+	public function testCallResponseHasTheRightInstanceOnSuccess()
 	{
 		$c =  new \Perecedero\SimpleCurl\Caller();
 		$returnedResponse = $c->call(array(
 			 'url' => '127.0.25.1:8000',
 		));
-		$this->assertInstanceOf('Perecedero\SimpleCurl\Response', $returnedResponse);
+
+		$this->assertInstanceOf('Perecedero\SimpleCurl\Response', $returnedResponse, 'response is not our object');
+	}
+
+	public function testCallrResponseHasTheRightInstanceOnFailure()
+	{
+		$c =  new \Perecedero\SimpleCurl\Caller();
+		$returnedResponse = $c->call(array(
+			 'url' => '8000', //Curl must fail on this call
+		));
+
+		$this->assertInstanceOf('Perecedero\SimpleCurl\Response', $returnedResponse, 'response is not our object');
 	}
 
 	public function testLoadComponent()
 	{
+		$nameComponent = 'TestComponentChangeMethodToHead';
+
 		$c =  new \Perecedero\SimpleCurl\Caller();
-		$nameComponent= 'TestComponent';
 		$c->loadComponent($nameComponent);
-		$this->assertInstanceOf($nameComponent, $c->TestComponent);
+		$this->assertInstanceOf($nameComponent, $c->TestComponentChangeMethodToHead);
+	}
+
+	public function testLoadComponentChangingName()
+	{
+		$nameComponent = 'TestComponentChangeMethodToHead';
+
+		$c =  new \Perecedero\SimpleCurl\Caller();
+		$c->loadComponent($nameComponent, array('name' => 'tccm'));
+		$this->assertInstanceOf($nameComponent, $c->tccm);
 	}
 
 	public function testRunComponent()
 	{
 		$c =  new \Perecedero\SimpleCurl\Caller();
-		$nameComponent= 'TestComponent';
-		$c->loadComponent($nameComponent);
+		$c->loadComponent('TestComponentChangeMethodToHead');
+
 		$response = $c->call(array(
 			'url' => '127.0.25.1:8000',
 		));
+
 		$str= $response->get('headers.sent');
-		$this->assertTrue(strpos($str, 'HEAD') !== false , 'El componente no ejecuto la funcion run');
+		$this->assertTrue(strpos($str, 'HEAD') !== false , 'El componente TestComponentChangeMethodToHead no modifico el metodo');
 
 	}
 
-	//falta Header usser aggent
-	// headers['User-Agent']='CERN-LineMode/2.15 libwww/2.17b3';
-
-	public function testRunTwoComponent()
+	public function testOptionUsesToSelectWichComponentToUseInTheCall()
 	{
 		$c =  new \Perecedero\SimpleCurl\Caller();
-		$nameComponent= 'TestComponentV2';
-		$c->loadComponent($nameComponent);
+		$c->loadComponent('TestComponentChangeMethodToHead');
+		$c->loadComponent('TestComponentChangeUserAgent');
+
 		$response = $c->call(array(
 			'url' => '127.0.25.1:8000',
+			'use'=>array('TestComponentChangeUserAgent'),
 		));
 		$str= $response->get('headers.sent');
-		$this->assertTrue(strpos($str, 'POST') !== false , 'El componente V2 no ejecuto la funcion run');
 
-	}
-
-	public function testUseComponent()
-	{
-		$c =  new \Perecedero\SimpleCurl\Caller();
-		$nameComponent= 'TestComponent';
-		$c->loadComponent($nameComponent);
-		$nameComponentTwo= 'TestComponentV2';
-		$c->loadComponent($nameComponentTwo);
-		$vecComponent=[$nameComponent,$nameComponentTwo];
-		$response = $c->call(array(
-			'url' => '127.0.25.1:8000',
-			'uses'=>$vecComponent,
-		));
-		$str= $response->get('headers.sent');
-		//echo $str;
-		//$this->assertTrue(strpos($str, 'HEAD') !== false , 'El componente V2 no ejecuto la funcion run');
-		$this->assertTrue(strpos($str, 'POST') !== false , 'El componente V2 no ejecuto la funcion run');
-
-
-	}
-
-	 public function testUseWhitThreeComponent()
-	{
-		$c =  new \Perecedero\SimpleCurl\Caller();
-		$nameComponent= 'TestComponent';
-		$c->loadComponent($nameComponent);
-		$nameComponentTwo= 'TestComponentV2';
-		$c->loadComponent($nameComponentTwo);
-
-		$nameComponentThree= 'TestComponentV3';
-		$c->loadComponent($nameComponentThree);
-
-		$vecComponent=[$nameComponent,$nameComponentTwo,$nameComponentThree];
-		$response = $c->call(array(
-			'url' => '127.0.25.1:8000',
-			'uses'=>$vecComponent,
-		));
-		$str= $response->get('headers.sent');
-		//echo $str;
-		//$this->assertTrue(strpos($str, 'HEAD') !== false , 'El componente V2 no ejecuto la funcion run');
-		$this->assertTrue(strpos($str, 'Mozilla/4.0') !== false , 'El componente V3 no ejecuto la funcion run');
-
-
+		$this->assertTrue(strpos($str, 'HEAD') === false , 'El componente TestComponentChangeMethodToHead funciono si estar activado');
 	}
 }
